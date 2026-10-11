@@ -17,7 +17,8 @@ import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
  * own work instead of stalling it. Loading only (no static initializers run), so nothing about the game changes: the
  * same classes end up loaded, only sooner and off the main thread. The list (resources/mcopt/metal/preload.txt.gz)
  * comes from a -Xlog:class+load run of the shipping stack (tools/preloadlist.py); names that don't exist in some
- * other mod set are skipped. -Dmcopt.preload=false turns it off, -Dmcopt.preload.threads=N sets the thread count.
+ * other mod set are skipped. With Metal on, one more thread runs the static setup of the native bridges (see onPreLaunch).
+ * -Dmcopt.preload=false turns it off, -Dmcopt.preload.threads=N sets the thread count.
  */
 public final class Preload implements PreLaunchEntrypoint {
 	static {
@@ -40,6 +41,23 @@ public final class Preload implements PreLaunchEntrypoint {
 			return;
 		}
 		ClassLoader loader = Preload.class.getClassLoader();
+		if (Boolean.parseBoolean(System.getProperty("mcopt.metal", "true"))) {
+			// Static setup the main thread otherwise runs in Minecraft.<init>, before the first resource load: Native
+			// extracts libmcmetal.dylib and links its downcalls (about 0.2 s), RuntimeUtils extracts and loads the
+			// Objective-C bridge the window uses. Neither touches AppKit or Metal, and the JVM makes the main thread
+			// wait for an initializer still running here, so nothing changes but where the time is spent.
+			Thread init = new Thread(() -> {
+				for (String name : new String[] {"mcopt.metal.Native", "ca.weblite.objc.RuntimeUtils"}) {
+					try {
+						Class.forName(name, true, loader);
+					} catch (Throwable t) {
+						// The main thread's first use then fails with NoClassDefFoundError, caused by this same error.
+					}
+				}
+			}, "mcopt native init");
+			init.setDaemon(true);
+			init.start();
+		}
 		AtomicInteger next = new AtomicInteger();
 		for (int t = 0; t < THREADS; t++) {
 			Thread thread = new Thread(() -> {

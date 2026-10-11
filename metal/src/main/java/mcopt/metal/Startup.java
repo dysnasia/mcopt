@@ -19,19 +19,46 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * <li>{@code -Dmcopt.startup.blockCache=parallel}: every block state's cache (shapes, light, sturdy faces) is computed in parallel
  * after the registry loop, which keeps adding the states to the id map in order. {@code =digest} computes them as vanilla does and
  * prints a digest of every cache; {@code =parallel-digest} prints it for the parallel path, so the two can be compared.</li>
+ * <li>{@code -Dmcopt.startup.report=true|exit}: prints the JVM uptime when the first resource load finishes and when the title
+ * screen takes input; {@code exit} then quits the game (for timing launches).</li>
  * <li>{@code -Dmcopt.startup.fadeMs=N}: the loading overlay's fade-out takes N ms instead of 1000 (fade-in N/2 instead of 500);
- * a visible UI change, not a game-logic one.</li>
+ * the overlay, which holds back input to the title screen, goes at 2N ms after loading instead of 2 s. A visible UI change, not a
+ * game-logic one; empty means vanilla's.</li>
  * </ul>
  */
 public final class Startup {
 	public static final String NARRATOR = System.getProperty("mcopt.startup.narrator", "");
 	public static final String CRASH_PRELOAD = System.getProperty("mcopt.startup.crashPreload", "");
 	public static final String BLOCK_CACHE = System.getProperty("mcopt.startup.blockCache", "");
-	public static final float FADE_MS = Float.parseFloat(System.getProperty("mcopt.startup.fadeMs", "-1"));
+	public static final float FADE_MS = fadeMs(System.getProperty("mcopt.startup.fadeMs", ""));
+
+	public static final String REPORT = System.getProperty("mcopt.startup.report", "");
 
 	private static final List<BlockState> PENDING = new ArrayList<>();
+	private static boolean titleReported;
 
 	private Startup() {
+	}
+
+	private static float fadeMs(String v) {
+		return v.isBlank() ? -1 : Float.parseFloat(v.trim());
+	}
+
+	/** -Dmcopt.startup.report: the first resource load has finished. */
+	public static void loadFinished() {
+		System.out.printf("mcopt-startup: load finished at %.2f s%n", uptime());
+	}
+
+	/** -Dmcopt.startup.report: the first loading overlay is gone; with report=exit the game quits. */
+	public static void titleReady(net.minecraft.client.Minecraft mc) {
+		if (titleReported) return;
+		titleReported = true;
+		System.out.printf("mcopt-startup: title screen at %.2f s%n", uptime());
+		if (REPORT.equals("exit")) mc.stop();
+	}
+
+	private static double uptime() {
+		return java.lang.management.ManagementFactory.getRuntimeMXBean().getUptime() / 1000.0;
 	}
 
 	public static boolean parallelBlockCache() {
@@ -117,7 +144,8 @@ public final class Startup {
 			}
 			return h;
 		}
-		if (v instanceof net.minecraft.world.level.material.FluidState fs) return fs.toString().hashCode();
+		// by id: a FluidState's toString names its Fluid by identity hash, which differs from launch to launch
+		if (v instanceof net.minecraft.world.level.material.FluidState fs) return net.minecraft.world.level.material.Fluid.FLUID_STATE_REGISTRY.getId(fs);
 		throw new IllegalStateException("block cache digest: unhandled value type " + v.getClass().getName());
 	}
 

@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
 /**
  * The generation experiments' mixins apply only with their flags: -Dmcopt.gen.worldgenQos (GenWorldgenQosMixin),
- * -Dmcopt.gen.nativeNoise (GenNoiseChunkMixin).
+ * -Dmcopt.gen.nativeNoise (GenNoiseChunkMixin), -Dmcopt.gen.bench (GenBenchMixin, GenBenchTerrainMixin).
  * Without them the game is byte for byte what it is without these mixins. Reads the properties itself, so nothing of
  * mcopt.metal.lod loads before the game does.
  */
@@ -18,6 +18,7 @@ public final class GenMixinPlugin implements IMixinConfigPlugin {
 	}
 
 	private static final boolean WORLDGEN_QOS = System.getProperty("mcopt.gen.worldgenQos") != null;
+	private static final boolean BENCH = System.getProperty("mcopt.gen.bench") != null;
 	private static final boolean NATIVE_NOISE = !System.getProperty("mcopt.gen.nativeNoise", "").isBlank();
 
 	@Override
@@ -33,6 +34,7 @@ public final class GenMixinPlugin implements IMixinConfigPlugin {
 	public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
 		if (mixinClassName.endsWith(".GenWorldgenQosMixin")) return WORLDGEN_QOS;
 		if (mixinClassName.endsWith(".GenNoiseChunkMixin")) return NATIVE_NOISE;
+		if (mixinClassName.endsWith(".GenBenchMixin") || mixinClassName.endsWith(".GenBenchTerrainMixin")) return BENCH;
 		return false;
 	}
 

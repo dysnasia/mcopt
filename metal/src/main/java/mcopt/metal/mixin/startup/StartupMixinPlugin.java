@@ -19,7 +19,10 @@ public final class StartupMixinPlugin implements IMixinConfigPlugin {
 		if (mixinClassName.endsWith("NarratorMixin")) return "lazy".equals(System.getProperty("mcopt.startup.narrator"));
 		if (mixinClassName.endsWith("CrashPreloadMixin")) return "async".equals(System.getProperty("mcopt.startup.crashPreload"));
 		if (mixinClassName.endsWith("BlockCacheMixin") || mixinClassName.endsWith("BootstrapCacheMixin")) return !System.getProperty("mcopt.startup.blockCache", "").isEmpty();
-		if (mixinClassName.endsWith("FadeMixin")) return System.getProperty("mcopt.startup.fadeMs") != null;
+		if (mixinClassName.endsWith("FadeMixin")) return !System.getProperty("mcopt.startup.fadeMs", "").isEmpty();
+		if (mixinClassName.endsWith("MipCoverageMixin")) return !System.getProperty("mcopt.startup.mipCoverage", "").isEmpty();
+		if (mixinClassName.endsWith("ReloadProfileMixin")) return Boolean.getBoolean("mcopt.startup.reloadProfile");
+		if (mixinClassName.endsWith("ReportMixin")) return !System.getProperty("mcopt.startup.report", "").isEmpty();
 		return false;
 	}
 	@Override public void acceptTargets(Set<String> myTargets, Set<String> otherTargets) { }

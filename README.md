@@ -34,6 +34,17 @@ Shows an fps counter in the top-left corner (hidden with F1 or F3; fn + F1 or fn
 - `profile=none` in `~/Library/Application Support/minecraft/config/mcopt.properties` (in Prism, the instance's
   `minecraft/config` folder) turns it off. The first launch writes that file.
 - Far terrain is an experimental opt-in: `mcopt.lod=true` in the same file, for Macs with 10 or more GPU cores.
+- Faster startup is on by default: the title screen takes input about 2 s sooner (Mac M5, 6.45 s to 4.46 s median over
+  8 launches). Most of that comes from a shorter fade-out on the loading screen. To keep vanilla's fade, add
+  `mcopt.startup.fadeMs=` with no value. Startup part two takes about 0.3 s more off (6 paired launches): the narrator,
+  GPU query and Metal bridge setup no longer hold up the main thread before the first resource load, and texture
+  mipmaps skip work whose result is already known.
+- Faster world generation is on by default: the world's noise (caves, terrain shape) runs in native NEON code, about
+  three times faster per value than the game's own, with the same blocks (identical terrain hashes, and 0 of 9,400
+  checked noise volumes differing). A chunk's terrain step (noise fill, surface, caves) takes 8 to 9% less CPU time
+  (3 runs of about 3,500 chunks each, every chunk given either noise at random in the same game). Terrain is about half
+  of a new chunk's work, so the whole generation uses about 3 to 4% less CPU. `mcopt.gen.nativeNoise=off` in the
+  same file turns it off.
 
 ## Numbers
 
@@ -62,9 +73,9 @@ For the most fps: Options > Video Settings, VSync off and Max Framerate Unlimite
 
 - Far terrain on by default, with tiers for smaller Macs
 - Our own shaders (BSL-level) as an option
-- Faster world generation (native noise, bit-exact)
+- Faster world generation, part two (aquifers, biome lookup and surface rules)
 - More exact server-tick and chunk optimizations, held for later alphas
-- Faster startup
+- Faster startup, part three (model baking during the first resource load, block shapes built at boot)
 - Wider hardware testing
 
 ## Licence and credits

@@ -37,6 +37,11 @@ public final class Profile {
 	public static synchronized void apply() {
 		if (applied) return;
 		applied = true;
+		// ioreg takes about 0.25 s; read the GPU core count now, off the main thread, so the first caller (the
+		// renderer's texture setup, on the main thread before the first resource load) finds it ready.
+		Thread cores = new Thread(Profile::gpuCores, "mcopt gpu cores");
+		cores.setDaemon(true);
+		cores.start();
 		applyFlags();
 		distantHorizonsOnOpenGl();
 	}

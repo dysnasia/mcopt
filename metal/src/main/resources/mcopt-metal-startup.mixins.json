@@ -3,6 +3,6 @@
 	"package": "mcopt.metal.mixin.startup",
 	"plugin": "mcopt.metal.mixin.startup.StartupMixinPlugin",
 	"compatibilityLevel": "JAVA_25",
-	"client": ["NarratorMixin", "CrashPreloadMixin", "BlockCacheMixin", "BootstrapCacheMixin", "FadeMixin"],
+	"client": ["NarratorMixin", "CrashPreloadMixin", "BlockCacheMixin", "BootstrapCacheMixin", "FadeMixin", "StartupReportMixin", "LoadFinishedReportMixin", "ReloadProfileMixin", "MipCoverageMixin"],
 	"injectors": { "defaultRequire": 1 }
 }

@@ -82,11 +82,23 @@ final class LodNativeNoise {
 	static final Mode LOD = new Mode(CONFIGURED != null ? CONFIGURED : Backend.PLAIN);
 	/**
 	 * -Dmcopt.gen.nativeNoise=neon|java: the integrated server's chunk generation gets copies too (GenNoiseChunkMixin wraps the
-	 * samplers NoiseChunk takes). Off by default; behaviour-identical by construction, proven on saved worlds before any default
-	 * changes.
+	 * samplers NoiseChunk takes). On in every profile (neon): identical terrain by construction, checked by GenBench (the same
+	 * terrain hash as the game's samplers, also with Java and native volumes mixed at random), and about three times faster per
+	 * noise value than the game's own Perlin code.
 	 */
 	static final @Nullable Backend SERVER_BACKEND = parse(System.getProperty("mcopt.gen.nativeNoise", ""));
 	static final Mode SERVER = new Mode(SERVER_BACKEND != null ? SERVER_BACKEND : Backend.PLAIN);
+
+	/** -Dmcopt.gen.bench.ab (with -Dmcopt.gen.bench): GenBench gives each chunk's terrain the game's noise or ours at random. */
+	static final boolean BENCH_AB = Boolean.getBoolean("mcopt.gen.bench.ab");
+	/** GenBench's per-chunk choice for the calling thread: true while a chunk's terrain is built with the game's own noise. */
+	static final ThreadLocal<Boolean> BENCH_PLAIN = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+	/** The backend a leaf of this copy uses on the calling thread (the copy's own, except in GenBench's comparison). */
+	static Backend backend(Mode m) {
+		if (BENCH_AB && m == SERVER && BENCH_PLAIN.get()) return Backend.PLAIN;
+		return m.backend;
+	}
 
 	static final AtomicLong volumes = new AtomicLong(), volumePoints = new AtomicLong(), points = new AtomicLong(), verified = new AtomicLong(),
 		mismatches = new AtomicLong();
@@ -142,7 +154,27 @@ final class LodNativeNoise {
 	/** The server's NoiseChunk samplers through copies with the -Dmcopt.gen.nativeNoise backend (GenServerNoise, the mixin's door). */
 	static DensitySamplerSet wrapServer(DensitySamplerSet set, Object owner) {
 		if (SERVER_BACKEND == null || SERVER_BACKEND == Backend.PLAIN) return set;
+		if (SERVER_BACKEND == Backend.NEON && !nativesLinked()) return set;
 		return wrap(set, owner, SERVER, SERVER_BACKEND == Backend.NEON, "the server's chunk generation");
+	}
+
+	private static @Nullable Boolean nativesLinked;
+
+	/**
+	 * Whether lodnoise.c's functions link (libmcmetal.dylib loads and has them); checked once. When they don't, the server's
+	 * chunk generation keeps the game's own samplers instead of failing.
+	 */
+	private static synchronized boolean nativesLinked() {
+		if (nativesLinked == null) {
+			try {
+				Class.forName(Natives.class.getName(), true, LodNativeNoise.class.getClassLoader());
+				nativesLinked = true;
+			} catch (Throwable t) {
+				nativesLinked = false;
+				System.out.println("[mcopt] gen: native noise unavailable (" + t + "), world generation uses the game's own noise");
+			}
+		}
+		return nativesLinked;
 	}
 
 	private static DensitySamplerSet wrap(DensitySamplerSet set, Object owner, Mode mode, boolean natives, String what) {
@@ -299,7 +331,7 @@ final class LodNativeNoise {
 	record Leaf(NoiseFunction.Sampler original, LodNoiseKernels.Stack stack, Mode mode) implements DensitySampler {
 		@Override
 		public void sampleVolume(SamplerContext ctx, DensityBuffer buffer, DensityVolume v) {
-			Backend b = this.mode.backend;
+			Backend b = backend(this.mode);
 			// (a buffer whose size isn't the volume's: the game's own loop, which fills by the buffer's size)
 			if (b == Backend.PLAIN || buffer.size() != v.size()) {
 				this.original.sampleVolume(ctx, buffer, v);
@@ -314,15 +346,15 @@ final class LodNativeNoise {
 				default -> LodNoiseKernels.stackVolume(this.stack, out, v.sizeX(), v.sizeY(), v.sizeZ(), v.minBlockX(), v.minBlockY(), v.minBlockZ(),
 					v.stepBlockX(), v.stepBlockY(), v.stepBlockZ(), xz, y);
 			}
-			counted(v.size());
+			if (this.mode != SERVER) counted(v.size());
 			if (VERIFY > 0) verify(this.original, ctx, buffer, v);
 		}
 
 		@Override
 		public float sampleValue(SamplerContext ctx, int x, int y, int z) {
-			Backend b = this.mode.backend;
+			Backend b = backend(this.mode);
 			if (b == Backend.PLAIN) return this.original.sampleValue(ctx, x, y, z);
-			points.incrementAndGet();
+			if (this.mode != SERVER) points.incrementAndGet();
 			double xz = this.original.xzScale(), ys = this.original.yScale();
 			return b == Backend.NEON ? Natives.stackPoint(this.stack, x * xz, y * ys, z * xz) : LodNoiseKernels.stackPoint(this.stack, x * xz, y * ys, z * xz);
 		}
@@ -333,7 +365,7 @@ final class LodNativeNoise {
 		LodNoiseKernels.Stack lo, LodNoiseKernels.Stack hi, Mode mode) implements DensitySampler {
 		@Override
 		public void sampleVolume(SamplerContext ctx, DensityBuffer buffer, DensityVolume v) {
-			Backend b = this.mode.backend;
+			Backend b = backend(this.mode);
 			if (b == Backend.PLAIN || buffer.size() != v.size()) {
 				this.original.sampleVolume(ctx, buffer, v);
 				return;
@@ -346,15 +378,15 @@ final class LodNativeNoise {
 				default -> LodNoiseKernels.blendedVolume(this.main, this.lo, this.hi, out, v.sizeX(), v.sizeY(), v.sizeZ(), v.minBlockX(), v.minBlockY(),
 					v.minBlockZ(), v.stepBlockX(), v.stepBlockY(), v.stepBlockZ(), this.mainXz, this.mainY, this.limitXz, this.limitY);
 			}
-			counted(v.size());
+			if (this.mode != SERVER) counted(v.size());
 			if (VERIFY > 0) verify(this.original, ctx, buffer, v);
 		}
 
 		@Override
 		public float sampleValue(SamplerContext ctx, int x, int y, int z) {
-			Backend b = this.mode.backend;
+			Backend b = backend(this.mode);
 			if (b == Backend.PLAIN) return this.original.sampleValue(ctx, x, y, z);
-			points.incrementAndGet();
+			if (this.mode != SERVER) points.incrementAndGet();
 			return b == Backend.NEON ? Natives.blendedPoint(this, x, y, z)
 				: LodNoiseKernels.blendedPoint(this.main, this.lo, this.hi, x, y, z, this.mainXz, this.mainY, this.limitXz, this.limitY);
 		}

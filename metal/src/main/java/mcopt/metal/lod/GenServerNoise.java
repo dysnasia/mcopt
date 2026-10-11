@@ -14,4 +14,13 @@ public final class GenServerNoise {
 	public static DensitySamplerSet wrap(DensitySamplerSet set, Object randomState) {
 		return LodNativeNoise.wrapServer(set, randomState);
 	}
+
+	/** GenBench's per-chunk comparison (-Dmcopt.gen.bench.ab): the calling thread's server noise is the game's own while true. */
+	public static void benchGameNoise(boolean plain) {
+		LodNativeNoise.BENCH_PLAIN.set(plain);
+	}
+
+	public static boolean benchAb() {
+		return LodNativeNoise.BENCH_AB;
+	}
 }
