@@ -7,6 +7,6 @@ public final class Mcopt implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		System.out.println("[mcopt] mcopt for 1.8.9 loaded");
-		NativeNoise.init();
+		if (!Boolean.getBoolean("mcopt.vanilla")) NativeNoise.init();  // dev: see MixinPlugin
 	}
 }

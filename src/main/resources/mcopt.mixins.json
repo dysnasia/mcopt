@@ -2,6 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "mcopt.legacy.mixin",
+  "plugin": "mcopt.legacy.MixinPlugin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
     "GenBenchMixin",

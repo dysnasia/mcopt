@@ -22,15 +22,17 @@ no JVM flags to add and nothing in the launcher to change.
 
 ## Numbers
 
-fps spinning, same test world, render distance 16, VSync off, Max Framerate unlimited, Fancy graphics. Two runs each,
-the four setups taken in turn so each pair ran under the same GPU clock:
+fps spinning, same test world, render distance 16, VSync off, Max Framerate unlimited, Fancy graphics, VBOs on. Two
+runs each:
 
-| Mac | Window | mcopt, Metal off | mcopt, Metal on |
-|---|---|---|---|
-| MacBook Air M5 (10-core GPU, 24 GB) | fullscreen (1470x956) | 250-312 / 1% low 123-173 | 346-500 / 1% low 209-274 |
-| MacBook Air M5 (10-core GPU, 24 GB) | windowed (854x480) | 277-280 / 1% low 155-160 | 519-526 / 1% low 268-273 |
+| Mac | Window | vanilla | mcopt, Metal off | mcopt, Metal on |
+|---|---|---|---|---|
+| MacBook Air M5 (10-core GPU, 24 GB) | fullscreen (1470x956) | 214-242 / 1% low 133-143 | 250-312 / 1% low 123-173 | 346-500 / 1% low 209-274 |
+| MacBook Air M5 (10-core GPU, 24 GB) | windowed (854x480) | 213-250 / 1% low 127-148 | 277-280 / 1% low 155-160 | 519-526 / 1% low 268-273 |
 
-"Metal off" is this mod with `metal=false`: the OpenGL path, with every other change below still on. The Air has no fan,
+"vanilla" is the unmodified game, measured by the same bench with every other part of the mod left out
+(`-Dmcopt.vanilla=true`). "Metal off" is this mod with `metal=false`: the OpenGL path, with every other change below
+still on. The Air has no fan,
 so its GPU clock moves between runs. The second fullscreen pair (250 and 346) ran slower for both setups.
 
 ## Changes in this fork
@@ -76,6 +78,8 @@ its own counter. On a Mac keyboard, use fn + F1 and fn + F3. Off switch: `fpsHud
 
 ## For developers
 
+- `-Dmcopt.fps.bench=true` runs the fps bench behind the numbers above; with `-Dmcopt.vanilla=true` it measures the
+  unmodified game.
 - `./gradlew build` builds the jar. On a Mac it also builds the native library with clang (`-ffp-contract=off`, no
   fast-math, which bit-exactness requires).
 - `-Dmcopt.noise.verify=true` runs both the native and the Java noise on every call and logs the mismatch count.
