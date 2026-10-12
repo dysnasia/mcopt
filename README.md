@@ -22,18 +22,22 @@ no JVM flags to add and nothing in the launcher to change.
 
 ## Numbers
 
-fps spinning, same test world, render distance 16, VSync off, Max Framerate unlimited, Fancy graphics, VBOs on. Two
-runs each:
+fps while the camera spins in place, same test world every run. Render distance 16, VSync off, Max Framerate
+unlimited, Fancy graphics, VBOs on. Two runs each:
 
 | Mac | Window | vanilla | mcopt, Metal off | mcopt, Metal on |
 |---|---|---|---|---|
 | MacBook Air M5 (10-core GPU, 24 GB) | fullscreen (1470x956) | 214-242 / 1% low 133-143 | 250-312 / 1% low 123-173 | 346-500 / 1% low 209-274 |
 | MacBook Air M5 (10-core GPU, 24 GB) | windowed (854x480) | 213-250 / 1% low 127-148 | 277-280 / 1% low 155-160 | 519-526 / 1% low 268-273 |
 
-"vanilla" is the unmodified game, measured by the same bench with every other part of the mod left out
-(`-Dmcopt.vanilla=true`). "Metal off" is this mod with `metal=false`: the OpenGL path, with every other change below
-still on. The Air has no fan,
-so its GPU clock moves between runs. The second fullscreen pair (250 and 346) ran slower for both setups.
+- "vanilla" is the unmodified game, measured by the same bench with every other part of the mod left out
+  (`-Dmcopt.vanilla=true`). These runs were taken in a separate session from the other two columns.
+- "Metal off" is this mod with `metal=false`: the OpenGL path, with every other change below still on.
+- The Air has no fan, so its GPU clock moves between runs. The second fullscreen pair (250 and 346) ran slower for
+  both setups.
+
+Comparing the middle of each range, Metal on runs about 1.8 times vanilla fullscreen and 2.3 times windowed. Metal off
+runs about 20% above vanilla in both.
 
 ## Changes in this fork
 
