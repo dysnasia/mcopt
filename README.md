@@ -1,7 +1,7 @@
 # mcopt for Minecraft 1.8.9
 
-This branch is the 1.8.9 port of mcopt. Everything is in the mod and on by default: install the jar and play. There are
-no JVM flags to add and nothing in the launcher to change.
+This branch is the 1.8.9 port of mcopt. Install the jar and play. Every change is in the mod and on by default, so you
+don't add JVM flags or change anything in the launcher.
 
 **Early alpha:** expect bugs, and back up your worlds.
 
@@ -41,16 +41,16 @@ runs about 20% above vanilla in both.
 
 ## Changes in this fork
 
-These changes are by dysnasia and are on by default. To turn one off, set its key to `false` in `config/mcopt.properties`.
-The first launch writes that file with every key and a comment for each.
+dysnasia made these changes, and all of them are on by default. To turn one off, set its key to `false` in
+`config/mcopt.properties`. The first launch writes that file with every key and a comment for each.
 
 ### Metal terrain
 
 The solid and cutout terrain layers (everything but water, ice, stained glass and slime) are drawn with Metal instead of
 OpenGL. On a Mac, OpenGL runs on top of Metal, so this removes the translation layer for most of the frame's geometry.
-Finished chunk meshes go into large Metal buffers. The GPU culls hidden chunk pieces itself against a depth pyramid from
-the previous frame's visible set, and draws the rest with indirect draws. The result is copied into the game's frame
-with its depth, so entities, water, particles and the hand draw over it as before. Off switch: `metal=false`.
+Finished chunk meshes go into large Metal buffers. The GPU culls hidden chunk pieces itself against a depth pyramid built
+from the previous frame's visible set, then draws the rest with indirect draws. The mod copies the result, depth
+included, into the game's frame, so entities, water, particles and the hand draw over it as before. Off switch: `metal=false`.
 
 ### Faster rendering on the OpenGL side
 
@@ -58,7 +58,7 @@ with its depth, so entities, water, particles and the hand draw over it as befor
   every frame.
 - The visibility walk over the chunk grid (setupTerrain) runs over flat arrays instead of allocating per section.
 - The entity pass looks up each chunk column once per frame instead of once per section.
-- More chunk-mesh worker threads, matched to the core count, and the workers are kept fed every frame.
+- There are more chunk-mesh worker threads, matched to the core count, and they get new work every frame.
 - Fancy clouds are built once and reused until they scroll a whole cell or change color, instead of being rebuilt from
   4,000 quads in 128 draws every frame. They look the same.
 
@@ -68,12 +68,12 @@ The improved Perlin noise behind every overworld, nether and end density octave 
 library is built for both Apple Silicon and Intel Macs and ships inside the jar.
 
 The blocks come out the same. At startup the mod checks the native code against the game's own on random inputs and
-falls back to Java if anything differs. In testing, 9.4 million checked noise values showed 0 differences, and the terrain
-hash of 600 spawn chunks was the same with native noise, Java noise, and the two mixed chunk by chunk.
+falls back to Java if anything differs. In testing, all 9.4 million checked noise values matched, and the terrain hash
+of 600 spawn chunks was the same with native noise, Java noise, and the two mixed chunk by chunk.
 
-Each overworld terrain chunk takes 5 to 11% less time (1.24 to 1.31 ms against 1.38 to 1.40 ms). That's from 600 spawn
-chunks per run on a dedicated server, where every chunk got one of the two noises at random in the same process. 1.8.9
-generates chunks on the server thread, so this time comes straight off world loading. Off switch: `nativeNoise=false`.
+Each overworld terrain chunk takes 5 to 11% less time (1.24 to 1.31 ms against 1.38 to 1.40 ms). I measured that over
+600 spawn chunks per run on a dedicated server, giving each chunk one of the two noises at random in the same process.
+1.8.9 generates chunks on the server thread, so the saving comes straight off world loading time. Off switch: `nativeNoise=false`.
 
 ### FPS counter
 
@@ -85,7 +85,7 @@ its own counter. On a Mac keyboard, use fn + F1 and fn + F3. Off switch: `fpsHud
 - `-Dmcopt.fps.bench=true` runs the fps bench behind the numbers above; with `-Dmcopt.vanilla=true` it measures the
   unmodified game.
 - `./gradlew build` builds the jar. On a Mac it also builds the native library with clang (`-ffp-contract=off`, no
-  fast-math, which bit-exactness requires).
+  fast-math, because the output has to match Java bit for bit).
 - `-Dmcopt.noise.verify=true` runs both the native and the Java noise on every call and logs the mismatch count.
 - `-Dmcopt.gen.bench=true` times each overworld chunk with native or Java noise picked at random, and logs both means
   and a terrain hash that must stay the same from run to run.
