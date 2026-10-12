@@ -15,10 +15,9 @@ don't add JVM flags or change anything in the launcher.
 
 1. Install Legacy Fabric for 1.8.9: https://legacyfabric.net/ (or in Prism Launcher: new instance, 1.8.9, loader Legacy
    Fabric).
-2. Download the mcopt 1.8.9 jar from [Releases](../../releases).
-3. Put it in the `mods` folder (`~/Library/Application Support/minecraft/mods` on a Mac; in Prism: Edit the instance >
+2. Put it in the `mods` folder (`~/Library/Application Support/minecraft/mods` on a Mac; in Prism: Edit the instance >
    Mods > Add file).
-4. Start Minecraft with the Fabric profile.
+3. Start Minecraft with the Fabric profile.
 
 ## Numbers
 
